@@ -1,4 +1,3 @@
-#[macro_use]
-extern crate compile_fail;
+#[macro_use] extern crate compile_fail;
 
 run_tests!();

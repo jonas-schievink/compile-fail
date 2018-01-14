@@ -33,21 +33,26 @@ pub struct Blueprint {
 }
 
 impl Blueprint {
-    /// Obtains a `Blueprint` by attempting to compile the `compile-fail.rs` integration test with
-    /// Cargo.
-    pub fn obtain(_config: &Config) -> Result<Self, Box<Error>> {
-        let config = CargoConfig::default()?;
+    /// Obtains a `Blueprint` by attempting to compile the wrapper test with Cargo.
+    pub fn obtain(config: &Config) -> Result<Self, Box<Error>> {
+        let cargo_config = CargoConfig::default()?;
         // direct Cargo's console output to a buffer
-        // FIXME no worky with JSON
-        *config.shell() = Shell::from_write(Box::new(Vec::new()));
+        *cargo_config.shell() = Shell::from_write(Box::new(Vec::new()));
 
         let cwd = current_dir()?;
         let mfst = find_project_manifest(&cwd, "Cargo.toml")?;
-        let ws = Workspace::new(&mfst, &config)?;
+        let ws = Workspace::new(&mfst, &cargo_config)?;
 
-        // configure Cargo to build the `compile-fail` test
-        let filter = ["compile-fail".to_string()];
-        let mut opt = CompileOptions::default(&config, CompileMode::Build);
+        // configure Cargo to build the test that invokes `compile-fail`
+        let testpath = Path::new(config.wrapper_test);
+        let testname = testpath.file_stem()
+            .ok_or(format!("`wrapper_test` must be a path to a file (is '{}')", config.wrapper_test))?;
+        let testname = testname.to_str().unwrap().to_string();
+        info!("wrapper test path: {}", testpath.display());
+        info!("wrapper test name: {}", testname);
+
+        let filter = [testname];
+        let mut opt = CompileOptions::default(&cargo_config, CompileMode::Build);
         opt.filter = CompileFilter::Only {
             all_targets: false,
             lib: false,
@@ -57,7 +62,13 @@ impl Blueprint {
             benches: FilterRule::Just(&[]),
         };
 
+        let testpath = Path::new(config.wrapper_test);
         let exec = Arc::new(Exec {
+            testpath: testpath.to_str().unwrap().to_string(),
+            testname: testpath.file_stem()
+                .ok_or(format!("wrapper_test must be a path to a test .rs file (is '{}')", testpath.display()))?
+                .to_str().unwrap()
+                .to_string(),
             found_test: AtomicBool::new(false),
             result: Mutex::new(Ok(None)),
         });
@@ -94,7 +105,11 @@ impl Blueprint {
 }
 
 struct Exec {
-    /// Set to `true` when we found the `compile_fail` test to recompile.
+    /// Path to the wrapper test (eg. `tests/compile-fail.rs`).
+    testpath: String,
+    /// The wrapper test name from Cargo's point of view (eg. `compile-fail`).
+    testname: String,
+    /// Set to `true` when we found the wrapper test to recompile.
     found_test: AtomicBool,
     result: Mutex<Result<Option<Blueprint>, String>>,
 }
@@ -105,7 +120,7 @@ impl Exec {
         let result = self.result.lock().unwrap();
         match *result {
             Ok(Some(ref bp)) => Ok(bp.clone()),
-            Ok(None) => Err("couldn't find `compile-fail.rs` test".into()),
+            Ok(None) => Err("couldn't find wrapper test".into()),
             Err(ref e) => Err(e.to_string().into()),
         }
     }
@@ -156,18 +171,18 @@ impl Executor for Exec {
                 .enumerate()
                 .filter_map(|(i, arg)| {
                     match arg.to_str() {
-                        Some(arg) if arg.ends_with("compile-fail.rs") => Some((i, arg)),
+                        Some(arg) if arg == self.testpath => Some((i, arg)),
                         _ => None,
                     }
                 })
                 .collect::<Vec<_>>();
 
             if matches.is_empty() {
-                return Err("couldn't find `compile-fail.rs` in compiler command line".into());
+                return Err("couldn't find wrapper test path in compiler command line".into());
             }
             if matches.len() > 1 {
                 return Err(format!(
-                    "found multiple arguments containing `compile-fail.rs` in compiler command line: {}",
+                    "found multiple arguments containing the wrapper test path in compiler command line: {}",
                     matches.iter()
                         .map(|&(i, arg)| format!("argument #{} ({})", i + 1, arg))
                         .collect::<Vec<_>>()
@@ -202,12 +217,12 @@ impl Executor for Exec {
     fn force_rebuild(&self, unit: &Unit) -> bool {
         debug!("force_rebuild of unit; target = {}, profile = {}", unit.target, unit.profile);
         match (unit.target.kind(), unit.target.name()) {
-            (&TargetKind::Test, "compile-fail") => {
+            (&TargetKind::Test, testname) if testname == self.testname => {
                 info!("forcing rebuild of {} with profile {}", unit.target, unit.profile);
                 if self.found_test.swap(true, Ordering::SeqCst) {
                     error!("already found a matching test, ambiguity!");
                     self.error(
-                        "found multiple tests matching `compile-fail`, run with \
+                        "found multiple tests matching the configured test name, run with \
                         `RUST_LOG=compile_fail` to learn more"
                     );
                     false

@@ -45,6 +45,8 @@ fn matches(pattern: &Pattern, msg: &Message) -> bool {
         return false;
     }
 
+    // The pattern must be a substring of the message. For this reason, patterns may not be the
+    // empty string (they would match everything).
     if !msg.msg.contains(&pattern.msg) {
         return false;
     }

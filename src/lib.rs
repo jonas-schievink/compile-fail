@@ -26,10 +26,10 @@ use std::path::PathBuf;
 #[macro_export]
 macro_rules! run_tests {
     () => {
-        #[test]
-        fn compile_fail() {
-            $crate::run_tests($crate::Config::default());
-        }
+        run_tests!($crate::Config {
+            wrapper_test: file!(),
+            ..$crate::Config::default()
+        });
     };
     ( $e:expr ) => {
         #[test]
@@ -41,6 +41,8 @@ macro_rules! run_tests {
 
 /// Locates compile-fail tests in the configured directory (`tests/compile-fail/*` by default).
 fn find_tests(config: &Config) -> Result<Vec<PathBuf>, Box<Error>> {
+    info!("searching for compile-fail tests, config = {:?}", config);
+
     let mut tests = Vec::new();
 
     for entry in fs::read_dir(&config.cfail_path)
@@ -72,7 +74,11 @@ fn find_tests(config: &Config) -> Result<Vec<PathBuf>, Box<Error>> {
     Ok(tests)
 }
 
-fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
+/// Runs all compile-fail tests and returns the test result as a `Result` instead of panicking on
+/// errors.
+///
+/// Apart from that, works the same way `run_tests` does.
+pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
     let tests = find_tests(&config)?.into_iter()
         .map(|path| TestExpectation::parse(&path).map(|exp| (path, exp)))
         .collect::<Result<Vec<_>, _>>()?;
