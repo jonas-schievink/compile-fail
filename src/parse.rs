@@ -301,5 +301,20 @@ mod tests {
                 line_num: 1,
             },
         ]);
+        assert_eq!(patterns("\
+                hello i am good code yes
+                //~^ ERROR[some code]\n\
+                //~|warn: massage"), vec![
+            Pattern {
+                kind: Some(MessageKind::Error),
+                matcher: Matcher::Code("some code".to_string()),
+                line_num: 1,
+            },
+            Pattern {
+                kind: Some(MessageKind::Warning),
+                matcher: Matcher::Msg("massage".to_string()),
+                line_num: 1,
+            },
+        ]);
     }
 }
