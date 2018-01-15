@@ -87,7 +87,7 @@ pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
     let tempdir = TempDir::new("rust-compile-fail")?;
     info!("temporary output directory at {}", tempdir.path().display());
     blueprint.set_out_dir(tempdir.path().to_owned());
-    runner::run(&blueprint, tests)?;
+    runner::run(&blueprint, &tests)?;
 
     Ok(())
 }

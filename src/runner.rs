@@ -5,7 +5,9 @@ use parse::{Pattern, MessageKind, TestExpectation};
 use json::{Message, parse_output};
 
 use std::error::Error;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+// FIXME add support for colored output (+terminal autodetection)
 
 /// Compares messages parsed from a compile-fail test (`expected`) with messages output by rustc
 /// (`got`).
@@ -36,29 +38,40 @@ fn compare_messages(expected: &[Pattern], got: &[Message]) -> Result<(), Box<Err
 
 /// Runs the compiler on compile-fail tests and compares the resulting output with the corresponding
 /// `TestExpectation`.
-pub fn run<I>(blueprint: &Blueprint, tests: I) -> Result<(), Box<Error>>
-where I: IntoIterator<Item=(PathBuf, TestExpectation)> {
-    for (path, expect) in tests {
-        let mut cmd = blueprint.build_command(&path);
-        cmd.args(&["--error-format", "json"]);
+pub fn run(blueprint: &Blueprint, tests: &[(PathBuf, TestExpectation)]) -> Result<(), Box<Error>> {
+    println!("running {} compile-fail test{}", tests.len(), if tests.is_empty() { "" } else { "s" });
 
-        debug!("running {:?}", cmd);
-
-        let output = cmd.output()?;
-        if output.status.success() {
-            return Err(format!("compilation of compile-fail test {} succeeded", path.display()).into());
+    for &(ref path, ref expect) in tests.iter() {
+        print!("test {} ... ", path.display());
+        match run_test(blueprint, (path, expect)) {
+            Ok(()) => println!("ok"),
+            Err(e) => println!("FAILED ({})", e),
         }
-
-        debug!("{} stdout bytes, {} stderr bytes", output.stdout.len(), output.stderr.len());
-
-        let filename = path.display().to_string();
-        let output = String::from_utf8(output.stderr).expect("rustc output wasn't utf-8");
-
-        let msgs = parse_output(&filename, &output)?;
-        info!("rustc msgs: {:#?}", msgs);
-
-        compare_messages(&expect.expected_msgs, &msgs)?;
     }
+
+    Ok(())
+}
+
+/// Runs a test, does not print to the console (but might log).
+fn run_test(blueprint: &Blueprint, (path, expect): (&Path, &TestExpectation)) -> Result<(), Box<Error>> {
+    let mut cmd = blueprint.build_command(path);
+    cmd.args(&["--error-format", "json"]);
+    debug!("running {:?}", cmd);
+
+    let output = cmd.output()?;
+    if output.status.success() {
+        return Err(format!("compilation of compile-fail test {} succeeded", path.display()).into());
+    }
+
+    debug!("{} stdout bytes, {} stderr bytes", output.stdout.len(), output.stderr.len());
+
+    let filename = path.display().to_string();
+    let output = String::from_utf8(output.stderr).expect("rustc output wasn't utf-8");
+
+    let msgs = parse_output(&filename, &output)?;
+    info!("rustc msgs: {:#?}", msgs);
+
+    compare_messages(&expect.expected_msgs, &msgs)?;
 
     Ok(())
 }
