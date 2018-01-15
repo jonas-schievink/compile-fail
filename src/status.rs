@@ -6,6 +6,7 @@ use termcolor::{ColorChoice, StandardStream, WriteColor, Color, ColorSpec};
 use std::io::{self, Write};
 use std::fmt::Display;
 use std::error::Error;
+use std::thread::panicking;
 
 enum Out {
     Console(StandardStream),
@@ -138,6 +139,8 @@ impl<E> TestStatus<E> {
 
 impl<E> Drop for TestStatus<E> {
     fn drop(&mut self) {
-        assert!(self.defused, "TestStatus::into_global_result was not called");
+        if !panicking() {
+            assert!(self.defused, "TestStatus::into_global_result was not called");
+        }
     }
 }
