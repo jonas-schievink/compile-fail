@@ -95,7 +95,7 @@ pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
 /// Runs all compile-fail tests.
 ///
 /// This function **must** be called from a test function named `compile_fail` contained in an
-/// integration test named `compile-fail.rs`.
+/// integration test. The `run_tests!` macro will autogenerate such a function.
 ///
 /// If any compile-fail test fails (or a different error was encountered), this will panic.
 pub fn run_tests(config: Config) {
