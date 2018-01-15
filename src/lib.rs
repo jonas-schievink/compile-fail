@@ -22,6 +22,7 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 
+/// Generates a `#[test]` function that manages all compile-fail tests.
 #[macro_export]
 macro_rules! run_tests {
     () => {
