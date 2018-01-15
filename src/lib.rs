@@ -1,3 +1,7 @@
+//! TODO: Write docs here :)
+//!
+//! If you can read this, I have failed my mission :(
+
 #[macro_use] extern crate log;
 #[macro_use] extern crate serde_derive;
 extern crate serde;
@@ -50,6 +54,12 @@ fn find_tests(config: &Config) -> Result<Vec<PathBuf>, Box<Error>> {
 
         let entry = entry?;
 
+        if entry.path().extension() != Some(std::ffi::OsStr::new("rs")) {
+            // Only consider `.rs` files. In reality, this is needed because of the `.gitkeep` in
+            // `tests/empty`.
+            break;
+        }
+
         let ftype = entry.file_type()?;
         if !ftype.is_file() {
             return Err(format!(
@@ -74,18 +84,13 @@ fn find_tests(config: &Config) -> Result<Vec<PathBuf>, Box<Error>> {
     Ok(tests)
 }
 
-/// Runs all compile-fail tests and returns the test result as a `Result` instead of panicking on
-/// errors.
-///
-/// Apart from that, works the same way `run_tests` does.
-pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
-    let _ = env_logger::init();
-
-    let tests = find_tests(&config)?.into_iter()
+fn parse_and_run<I>(config: &Config, i: I) -> Result<(), Box<Error>>
+where I: IntoIterator<Item=PathBuf> {
+    let tests = i.into_iter()
         .map(|path| TestExpectation::parse(&path).map(|exp| (path, exp)))
         .collect::<Result<Vec<_>, _>>()?;
 
-    let mut blueprint = Blueprint::obtain(&config)?;
+    let mut blueprint = Blueprint::obtain(config)?;
 
     let tempdir = TempDir::new("rust-compile-fail")?;
     info!("temporary output directory at {}", tempdir.path().display());
@@ -93,6 +98,26 @@ pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
     runner::run(&blueprint, &tests)?;
 
     Ok(())
+}
+
+/// This should **never** be visible to users of this crate. It is only used for tests.
+#[doc(hidden)]
+pub fn run_single_test(config: Config, path: PathBuf) -> Result<(), Box<Error>> {
+    use std::iter;
+
+    let _ = env_logger::init();
+
+    parse_and_run(&config, iter::once(path))
+}
+
+/// Runs all compile-fail tests and returns the test result as a `Result` instead of panicking on
+/// errors.
+///
+/// Apart from that, works the same way `run_tests` does.
+pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
+    let _ = env_logger::init();
+
+    parse_and_run(&config, find_tests(&config)?)
 }
 
 /// Runs all compile-fail tests.
@@ -106,8 +131,7 @@ pub fn run_tests(config: Config) {
     match try_run_tests(config) {
         Ok(()) => {}
         Err(e) => {
-            eprintln!("{}", e);
-            panic!();
+            panic!("{}", e);
         }
     }
 }
