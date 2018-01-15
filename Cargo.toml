@@ -1,7 +1,13 @@
 [package]
 name = "compile-fail"
-version = "0.1.0"
+description = """
+Make safe abstractions stay safe by not letting unsafe code compile
+"""
+license = "CC0-1.0"
+categories = ["development-tools"]
+keywords = ["testing"]
 authors = ["Jonas Schievink <jonasschievink@gmail.com>"]
+version = "0.1.0"
 
 [dependencies]
 cargo = "0.24.0"
