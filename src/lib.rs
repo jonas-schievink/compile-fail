@@ -78,6 +78,8 @@ fn find_tests(config: &Config) -> Result<Vec<PathBuf>, Box<Error>> {
 ///
 /// Apart from that, works the same way `run_tests` does.
 pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
+    let _ = env_logger::init();
+
     let tests = find_tests(&config)?.into_iter()
         .map(|path| TestExpectation::parse(&path).map(|exp| (path, exp)))
         .collect::<Result<Vec<_>, _>>()?;
@@ -99,8 +101,6 @@ pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
 ///
 /// If any compile-fail test fails (or a different error was encountered), this will panic.
 pub fn run_tests(config: Config) {
-    let _ = env_logger::init();
-
     // Attempt to build the (currently running) compile_fail test
     match try_run_tests(config) {
         Ok(()) => {}
