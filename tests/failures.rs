@@ -13,6 +13,7 @@ fn failures() {
     let c = Config {
         cfail_path: path.clone(),
         wrapper_test: file!(),
+        no_console_output: true,
     };
 
     for entry in read_dir(&path).unwrap() {
@@ -34,6 +35,7 @@ fn no_such_dir() {
     let c = Config {
         cfail_path: "this-dir/does-not-exist".into(),
         wrapper_test: file!(),
+        no_console_output: true,
     };
 
     run_tests(c);
@@ -45,6 +47,7 @@ fn empty_dir() {
     let c = Config {
         cfail_path: "tests/empty".into(),
         wrapper_test: file!(),
+        no_console_output: true,
     };
 
     run_tests(c);

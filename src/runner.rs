@@ -1,13 +1,13 @@
 //! Runs the compiler and compares its output with the patterns in the compile-fail test.
 
+use Config;
 use compile::Blueprint;
 use parse::{Pattern, MessageKind, TestExpectation};
 use json::{Message, parse_output};
+use status::TestStatus;
 
 use std::error::Error;
 use std::path::{Path, PathBuf};
-
-// FIXME add support for colored output (+terminal autodetection)
 
 /// Compares messages parsed from a compile-fail test (`expected`) with messages output by rustc
 /// (`got`).
@@ -38,18 +38,16 @@ fn compare_messages(expected: &[Pattern], got: &[Message]) -> Result<(), Box<Err
 
 /// Runs the compiler on compile-fail tests and compares the resulting output with the corresponding
 /// `TestExpectation`.
-pub fn run(blueprint: &Blueprint, tests: &[(PathBuf, TestExpectation)]) -> Result<(), Box<Error>> {
-    println!("running {} compile-fail test{}", tests.len(), if tests.is_empty() { "" } else { "s" });
+pub fn run(config: &Config, blueprint: &Blueprint, tests: &[(PathBuf, TestExpectation)]) -> Result<(), Box<Error>> {
+    let mut status = TestStatus::new(config, tests.len());
+    status.print_header()?;
 
     for &(ref path, ref expect) in tests.iter() {
-        print!("test {} ... ", path.display());
-        match run_test(blueprint, (path, expect)) {
-            Ok(()) => println!("ok"),
-            Err(e) => println!("FAILED ({})", e),
-        }
+        status.print_test(&path.file_name().unwrap().to_string_lossy(), run_test(blueprint, (path, expect)))?;
     }
 
-    Ok(())
+    status.print_result()?;
+    status.into_global_result()
 }
 
 /// Runs a test, does not print to the console (but might log).
@@ -71,7 +69,12 @@ fn run_test(blueprint: &Blueprint, (path, expect): (&Path, &TestExpectation)) ->
     let msgs = parse_output(&filename, &output)?;
     info!("rustc msgs: {:#?}", msgs);
 
-    compare_messages(&expect.expected_msgs, &msgs)?;
+    compare_messages(&expect.expected_msgs, &msgs).map_err(|e| {
+        // attach compiler output
+        format!("{}\n\nrustc output:\n{:#?}", e, msgs)
+
+        // Who even needs error-chain, quick-error, failure or any of that stuff?
+    })?;
 
     Ok(())
 }

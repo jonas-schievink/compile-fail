@@ -14,6 +14,11 @@ pub struct Config {
     ///
     /// By convention, this is `tests/compile-fail.rs`.
     pub wrapper_test: &'static str,
+
+    /// If this is set to `true`, no output will be printed directly to the console.
+    ///
+    /// Note that logging can still write to the console, if enabled.
+    pub no_console_output: bool,
 }
 
 impl Default for Config {
@@ -22,6 +27,7 @@ impl Default for Config {
             cfail_path: PathBuf::from("tests/compile-fail"),
             // This default will be overwritten by the `run_tests!` macro, which passes `file!()`.
             wrapper_test: "tests/compile-fail.rs",
+            no_console_output: false,
         }
     }
 }

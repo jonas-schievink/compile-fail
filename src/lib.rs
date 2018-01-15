@@ -9,12 +9,14 @@ extern crate serde_json;
 extern crate env_logger;
 extern crate cargo;
 extern crate tempdir;
+extern crate termcolor;
 
 mod compile;
 mod config;
 mod json;
 mod parse;
 mod runner;
+mod status;
 
 pub use config::Config;
 use compile::Blueprint;
@@ -95,7 +97,7 @@ where I: IntoIterator<Item=PathBuf> {
     let tempdir = TempDir::new("rust-compile-fail")?;
     info!("temporary output directory at {}", tempdir.path().display());
     blueprint.set_out_dir(tempdir.path().to_owned());
-    runner::run(&blueprint, &tests)?;
+    runner::run(config, &blueprint, &tests)?;
 
     Ok(())
 }
