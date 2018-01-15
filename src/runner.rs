@@ -17,7 +17,7 @@ use std::path::PathBuf;
 fn compare_messages(expected: &[Pattern], got: &[Message]) -> Result<(), Box<Error>> {
     // match everything in `expected` against `got` (ensures that we got everything we expected)
     if let Some(not_found) = expected.iter()
-        .find(|pattern| !got.iter().any(|msg| matches(pattern, msg))) {
+        .find(|pattern| !got.iter().any(|msg| pattern.matches(msg))) {
 
         return Err(format!("message not found in compiler output: {:?}", not_found).into());
     }
@@ -26,33 +26,12 @@ fn compare_messages(expected: &[Pattern], got: &[Message]) -> Result<(), Box<Err
     // (ensures that all errors and warnings are expected)
     if let Some(not_found) = got.iter()
         .filter(|got| got.kind == Some(MessageKind::Error) || got.kind == Some(MessageKind::Warning))
-        .find(|got| !expected.iter().any(|pattern| matches(pattern, got))) {
+        .find(|got| !expected.iter().any(|pattern| pattern.matches( got))) {
 
         return Err(format!("unexpected error or warning in compiler output (all errors and warnings must be matched by a pattern in the test): {:?}", not_found).into());
     }
 
     Ok(())
-}
-
-fn matches(pattern: &Pattern, msg: &Message) -> bool {
-    if pattern.kind != msg.kind {
-        // kind must match *exactly*
-        return false;
-    }
-
-    if pattern.line_num != msg.line_num {
-        // line must match *exactly*
-        return false;
-    }
-
-    // The pattern must be a substring of the message. For this reason, patterns may not be the
-    // empty string (they would match everything).
-    if !msg.msg.contains(&pattern.msg) {
-        return false;
-    }
-
-    info!("matches: pattern {:?} matches message {:?}", pattern, msg);
-    true
 }
 
 /// Runs the compiler on compile-fail tests and compares the resulting output with the corresponding

@@ -4,7 +4,6 @@ extern crate serde;
 extern crate serde_json;
 extern crate env_logger;
 extern crate cargo;
-extern crate regex;
 extern crate tempdir;
 
 mod compile;
