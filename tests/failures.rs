@@ -23,7 +23,7 @@ fn failures() {
             Ok(()) => panic!("test {} succeeded, but was expected to fail", entry.path().display()),
             Err(e) => {
                 // It would be nice to compare the error to the one we expect.
-                println!("{}", e);
+                println!("failure test {} succeeded with error: {}", path.display(), e);
             }
         }
     }

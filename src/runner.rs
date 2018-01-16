@@ -17,6 +17,14 @@ use std::path::{Path, PathBuf};
 /// message (same kind and line) in `got`. Additionally, the message itself must be matched by the
 /// regex in `expected`.
 fn compare_messages(expected: &[Pattern], got: &[Message]) -> Result<(), Box<Error>> {
+    // For now, disable matching anything but errors. It can be hard to reliably produce both an
+    // error (which is needed to pass the test at all) and another message type.
+    if let Some(non_error) = expected.iter()
+        .find(|pat| pat.kind != Some(MessageKind::Error)) {
+
+        return Err(format!("matching non-error messages is not yet supported ({:?})", non_error).into());
+    }
+
     // match everything in `expected` against `got` (ensures that we got everything we expected)
     if let Some(not_found) = expected.iter()
         .find(|pattern| !got.iter().any(|msg| pattern.matches(msg))) {
@@ -57,16 +65,14 @@ fn run_test(blueprint: &Blueprint, (path, expect): (&Path, &TestExpectation)) ->
     debug!("running {:?}", cmd);
 
     let output = cmd.output()?;
-    if output.status.success() {
-        return Err(format!("compilation of compile-fail test {} succeeded", path.display()).into());
-    }
 
     debug!("{} stdout bytes, {} stderr bytes", output.stdout.len(), output.stderr.len());
 
     let filename = path.display().to_string();
-    let output = String::from_utf8(output.stderr).expect("rustc output wasn't utf-8");
+    let json = String::from_utf8(output.stderr).expect("rustc output wasn't utf-8");
 
-    let msgs = parse_output(&filename, &output)?;
+    let msgs = parse_output(&filename, &json)?;
+    info!("expected msgs: {:#?}", expect.expected_msgs);
     info!("rustc msgs: {:#?}", msgs);
 
     compare_messages(&expect.expected_msgs, &msgs).map_err(|e| {
@@ -75,6 +81,11 @@ fn run_test(blueprint: &Blueprint, (path, expect): (&Path, &TestExpectation)) ->
 
         // Who even needs error-chain, quick-error, failure or any of that stuff?
     })?;
+
+    if output.status.success() {
+        // We check this last so we can see all other errors first.
+        return Err(format!("compilation of compile-fail test {} succeeded", path.display()).into());
+    }
 
     Ok(())
 }

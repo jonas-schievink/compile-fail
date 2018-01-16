@@ -24,7 +24,7 @@ pub struct Message {
     pub kind: Option<MessageKind>,
     /// The primary message as rendered by rustc.
     pub msg: String,
-    /// The associated error code. Only errors have a code.
+    /// The code of the error this message is a part of.
     pub code: Option<String>,
     /// The line at which the message points.
     pub line_num: usize,
@@ -134,37 +134,6 @@ fn push_expected_errors(expected_errors: &mut Vec<Message>,
         &primary_spans
     };
 
-    // We break the output into multiple lines, and then append the
-    // [E123] to every line in the output. This may be overkill.  The
-    // intention was to match existing tests that do things like "//|
-    // found `i32` [E123]" and expect to match that somewhere, and yet
-    // also ensure that `//~ ERROR E123` *always* works. The
-    // assumption is that these multi-line error messages are on their
-    // way out anyhow.
-    let with_code = |span: &DiagnosticSpan, text: &str| {
-        match diagnostic.code {
-            Some(ref code) =>
-            // FIXME(#33000) -- it'd be better to use a dedicated
-            // UI harness than to include the line/col number like
-            // this, but some current tests rely on it.
-            //
-            // Note: Do NOT include the filename. These can easily
-            // cause false matches where the expected message
-            // appears in the filename, and hence the message
-            // changes but the test still passes.
-                format!("{}:{}: {}:{}: {} [{}]",
-                        span.line_start, span.column_start,
-                        span.line_end, span.column_end,
-                        text, code.code.clone()),
-            None =>
-            // FIXME(#33000) -- it'd be better to use a dedicated UI harness
-                format!("{}:{}: {}:{}: {}",
-                        span.line_start, span.column_start,
-                        span.line_end, span.column_end,
-                        text),
-        }
-    };
-
     let code = diagnostic.code.clone().map(|code| code.code);
 
     // Convert multi-line messages into multiple expected
@@ -173,13 +142,13 @@ fn push_expected_errors(expected_errors: &mut Vec<Message>,
     let mut message_lines = diagnostic.message.lines();
     if let Some(first_line) = message_lines.next() {
         for span in primary_spans {
-            let msg = with_code(span, first_line);
+            // We should perhaps `.unwrap()` the parse
             let kind = MessageKind::from_str(&diagnostic.level).ok();
             expected_errors.push(Message {
                 line_num: span.line_start,
                 code: code.clone(),
                 kind,
-                msg,
+                msg: first_line.to_string(),
             });
         }
     }
@@ -189,7 +158,7 @@ fn push_expected_errors(expected_errors: &mut Vec<Message>,
                 line_num: span.line_start,
                 code: code.clone(),
                 kind: None,
-                msg: with_code(span, next_line),
+                msg: next_line.to_string(),
             });
         }
     }

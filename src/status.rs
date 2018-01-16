@@ -7,24 +7,26 @@ use std::io::{self, Write};
 use std::fmt::Display;
 use std::error::Error;
 use std::thread::panicking;
+use std::str;
 
 enum Out {
     Console(StandardStream),
-    Quiet,
+    /// Buffers output instead of printing.
+    Quiet(Vec<u8>),
 }
 
 impl Write for Out {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         match *self {
             Out::Console(ref mut s) => s.write(buf),
-            Out::Quiet => Ok(buf.len()),
+            Out::Quiet(ref mut b) => b.write(buf),
         }
     }
 
     fn flush(&mut self) -> io::Result<()> {
         match *self {
             Out::Console(ref mut s) => s.flush(),
-            Out::Quiet => Ok(()),
+            Out::Quiet(ref mut b) => b.flush(),
         }
     }
 }
@@ -33,21 +35,21 @@ impl WriteColor for Out {
     fn supports_color(&self) -> bool {
         match *self {
             Out::Console(ref s) => s.supports_color(),
-            Out::Quiet => false,
+            Out::Quiet(_) => false,
         }
     }
 
     fn set_color(&mut self, spec: &ColorSpec) -> io::Result<()> {
         match *self {
             Out::Console(ref mut s) => s.set_color(spec),
-            Out::Quiet => Ok(()),
+            Out::Quiet(_) => Ok(()),
         }
     }
 
     fn reset(&mut self) -> io::Result<()> {
         match *self {
             Out::Console(ref mut s) => s.reset(),
-            Out::Quiet => Ok(()),
+            Out::Quiet(_) => Ok(()),
         }
     }
 }
@@ -64,7 +66,7 @@ impl<E> TestStatus<E> {
     pub fn new(config: &Config, num_tests: usize) -> Self {
         Self {
             out: if config.no_console_output {
-                Out::Quiet
+                Out::Quiet(Vec::new())
             } else {
                 Out::Console(StandardStream::stdout(ColorChoice::Auto))
             },
@@ -123,7 +125,18 @@ impl<E> TestStatus<E> {
         if self.errors.is_empty() {
             Ok(())
         } else {
-            Err(format!("{} compile-fail tests failed", self.errors.len()).into())
+            let msg = match self.out {
+                Out::Console(_) => {
+                    // We already printed everything to the console, a summary is enough
+                    String::new()
+                }
+                Out::Quiet(ref b) => {
+                    format!("{}\n\n", str::from_utf8(b).expect("produced non-utf8 output"))
+                }
+            };
+
+
+            Err(format!("{}{} compile-fail tests failed", msg, self.errors.len()).into())
         }
     }
 
