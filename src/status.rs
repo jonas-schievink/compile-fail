@@ -116,6 +116,8 @@ impl<E> TestStatus<E> {
 
     /// Turns this `TestStatus` into a summarizing result that is `Ok` if all tests passed and `Err`
     /// if at least one test failed.
+    ///
+    /// This method must be called or the `Drop` impl of `TestStatus` will panic.
     pub fn into_global_result(mut self) -> Result<(), Box<Error>> {
         self.defused = true;
         if self.errors.is_empty() {

@@ -24,6 +24,8 @@ pub struct Message {
     pub kind: Option<MessageKind>,
     /// The primary message as rendered by rustc.
     pub msg: String,
+    /// The associated error code. Only errors have a code.
+    pub code: Option<String>,
     /// The line at which the message points.
     pub line_num: usize,
 }
@@ -163,6 +165,8 @@ fn push_expected_errors(expected_errors: &mut Vec<Message>,
         }
     };
 
+    let code = diagnostic.code.clone().map(|code| code.code);
+
     // Convert multi-line messages into multiple expected
     // errors. We expect to replace these with something
     // more structured shortly anyhow.
@@ -173,6 +177,7 @@ fn push_expected_errors(expected_errors: &mut Vec<Message>,
             let kind = MessageKind::from_str(&diagnostic.level).ok();
             expected_errors.push(Message {
                 line_num: span.line_start,
+                code: code.clone(),
                 kind,
                 msg,
             });
@@ -182,6 +187,7 @@ fn push_expected_errors(expected_errors: &mut Vec<Message>,
         for span in primary_spans {
             expected_errors.push(Message {
                 line_num: span.line_start,
+                code: code.clone(),
                 kind: None,
                 msg: with_code(span, next_line),
             });
@@ -196,6 +202,7 @@ fn push_expected_errors(expected_errors: &mut Vec<Message>,
                     line_num: span.line_start + index,
                     kind: Some(MessageKind::Suggestion),
                     msg: line.to_string(),
+                    code: code.clone(),
                 });
             }
         }
@@ -215,6 +222,7 @@ fn push_expected_errors(expected_errors: &mut Vec<Message>,
             line_num: span.line_start,
             kind: Some(MessageKind::Note),
             msg: span.label.clone().unwrap(),
+            code: code.clone(),
         });
     }
 
@@ -232,6 +240,7 @@ fn push_backtrace(expected_errors: &mut Vec<Message>,
             line_num: expansion.span.line_start,
             kind: Some(MessageKind::Note),
             msg: format!("in this expansion of {}", expansion.macro_decl_name),
+            code: None,
         });
     }
 

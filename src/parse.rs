@@ -80,8 +80,8 @@ impl Pattern {
         // The pattern must be a substring of the message. For this reason, patterns may not be the
         // empty string (they would match everything).
         match self.matcher {
-            Matcher::Code(ref _code) => {
-                unimplemented!();
+            Matcher::Code(ref code) => if msg.code.as_ref() != Some(code) {
+                return false;
             }
             Matcher::Msg(ref message) => if !msg.msg.contains(message) {
                 return false;
