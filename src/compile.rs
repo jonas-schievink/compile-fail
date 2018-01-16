@@ -12,10 +12,14 @@ use cargo::core::manifest::{Target, TargetKind};
 use std::env::current_dir;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::ffi::OsString;
 use std::process::Command;
 use std::path::{Path, PathBuf};
+
+// Note (to self and contributors, mostly): Cargo is pretty bad with retaining error information.
+// In particular, errors returned by the `Runner` callback might Cargo to give us a different error
+// that just says "Could not compile `<crate>`". It would be nice to circumvent this, but for now,
+// just log a lot.
 
 /// Commandline invocation blueprint for compiling tests like Cargo would.
 ///
@@ -69,7 +73,7 @@ impl Blueprint {
                 .ok_or(format!("wrapper_test must be a path to a test .rs file (is '{}')", testpath.display()))?
                 .to_str().unwrap()
                 .to_string(),
-            found_test: AtomicBool::new(false),
+            target: Mutex::new(None),
             result: Mutex::new(Ok(None)),
         });
 
@@ -109,8 +113,8 @@ struct Exec {
     testpath: String,
     /// The wrapper test name from Cargo's point of view (eg. `compile-fail`).
     testname: String,
-    /// Set to `true` when we found the wrapper test to recompile.
-    found_test: AtomicBool,
+    /// Set by `force_recompile`, read by `exec` to find the right target to interrogate.
+    target: Mutex<Option<Target>>,
     result: Mutex<Result<Option<Blueprint>, String>>,
 }
 
@@ -154,8 +158,19 @@ impl Executor for Exec {
         id: &PackageId,
         target: &Target
     ) -> CargoResult<()> {
-        info!("exec called for package {}, target {}", id, target);
-        info!("exec process = {}", cmd);
+        debug!("exec called for package {}, target {}", id, target);
+
+        {
+            let t = self.target.lock().unwrap();
+
+            // FIXME: should this expect return an error instead?
+            if t.as_ref().expect("didn't find target") != target {
+                debug!("this is not the target we're looking for");
+                return Ok(());
+            }
+        }
+
+        debug!("exec process = {}", cmd);
 
         // Extract arguments, replacing the arg containing `compile-fail.rs` with whatever we want
         // to compile. Congratulations, now we know how to build any test.
@@ -218,17 +233,18 @@ impl Executor for Exec {
         debug!("force_rebuild of unit; target = {}, profile = {}", unit.target, unit.profile);
         match (unit.target.kind(), unit.target.name()) {
             (&TargetKind::Test, testname) if testname == self.testname => {
-                info!("forcing rebuild of {} with profile {}", unit.target, unit.profile);
-                if self.found_test.swap(true, Ordering::SeqCst) {
-                    error!("already found a matching test, ambiguity!");
+                info!("forcing rebuild of target {} with profile {}", unit.target, unit.profile);
+                let mut target = self.target.lock().unwrap();
+                if let Some(ref target) = *target {
+                    error!("already found a matching test: {}", target);
                     self.error(
                         "found multiple tests matching the configured test name, run with \
                         `RUST_LOG=compile_fail` to learn more"
                     );
-                    false
-                } else {
-                    true
                 }
+                *target = Some(unit.target.clone());
+
+                true
             }
             _ => false,
         }
