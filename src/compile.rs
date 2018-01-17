@@ -1,4 +1,5 @@
 use Config;
+use utils::LogWriter;
 
 use cargo::ops::*;
 use cargo::util::important_paths::find_project_manifest;
@@ -42,14 +43,24 @@ impl Blueprint {
     pub fn obtain(config: &Config) -> Result<Self, Box<Error>> {
         let cargo_config = CargoConfig::default()?;
         // direct Cargo's console output to a buffer
-        *cargo_config.shell() = Shell::from_write(Box::new(Vec::new()));
+        *cargo_config.shell() = Shell::from_write(Box::new(LogWriter::new("Cargo output")));
+
+        debug!("registry index: {}", cargo_config.registry_index_path().display());
+        debug!("registry cache: {}", cargo_config.registry_cache_path().display());
+        debug!("registry sources: {}", cargo_config.registry_source_path().display());
+        debug!("cargo executable: {}", cargo_config.cargo_exe()?.display());
+        debug!("rustc info: {:?}", cargo_config.rustc()?);
+        debug!("target dir: {:?}", cargo_config.target_dir()?);
 
         let cwd = current_dir()?;
         let mfst = find_project_manifest(&cwd, "Cargo.toml")?;
         let ws = Workspace::new(&mfst, &cargo_config)?;
         debug!("cwd: {}", cwd.display());
         debug!("manifest: {:?}", mfst);
-        debug!("workspace: {:?}", ws);
+
+        let comp = Compilation::new(&cargo_config);
+        let rustc = comp.rustc_process(ws.current()?)?;
+        info!("rustc process from Compilation: {:?}", rustc);
 
         // configure Cargo to build the test that invokes `compile-fail`
         let testpath = Path::new(config.wrapper_test);

@@ -17,6 +17,7 @@ mod json;
 mod parse;
 mod runner;
 mod status;
+mod utils;
 
 pub use config::Config;
 use compile::Blueprint;
