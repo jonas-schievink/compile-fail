@@ -1,0 +1,8 @@
+language: rust
+cache: cargo
+env:
+  - RUST_LOG="compile_fail"
+rust:
+  - 1.20.0
+#  - stable
+#  - nightly
