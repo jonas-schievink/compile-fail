@@ -20,6 +20,7 @@ use std::path::{Path, PathBuf};
 // In particular, errors returned by the `Runner` callback might Cargo to give us a different error
 // that just says "Could not compile `<crate>`". It would be nice to circumvent this, but for now,
 // just log a lot.
+// Addendum: It turns out that everything breaks anyway when this happens.
 
 /// Commandline invocation blueprint for compiling tests like Cargo would.
 ///
@@ -46,6 +47,9 @@ impl Blueprint {
         let cwd = current_dir()?;
         let mfst = find_project_manifest(&cwd, "Cargo.toml")?;
         let ws = Workspace::new(&mfst, &cargo_config)?;
+        debug!("cwd: {}", cwd.display());
+        debug!("manifest: {:?}", mfst);
+        debug!("workspace: {:?}", ws);
 
         // configure Cargo to build the test that invokes `compile-fail`
         let testpath = Path::new(config.wrapper_test);
