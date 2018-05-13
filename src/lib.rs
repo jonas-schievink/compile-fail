@@ -7,9 +7,9 @@
 extern crate serde;
 extern crate serde_json;
 extern crate env_logger;
-extern crate cargo;
 extern crate tempdir;
 extern crate termcolor;
+extern crate build_plan;
 
 mod compile;
 mod config;
@@ -17,7 +17,6 @@ mod json;
 mod parse;
 mod runner;
 mod status;
-mod utils;
 
 pub use config::Config;
 use compile::Blueprint;

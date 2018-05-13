@@ -5,6 +5,6 @@ fn main() {
         let local = 5;
         &local
     };
-    //~^ error[E0597]
+    //~^^ error[E0597]
     // does not live long enough
 }

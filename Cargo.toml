@@ -11,7 +11,7 @@ repository = "https://github.com/jonas-schievink/compile-fail"
 version = "0.1.0"
 
 [dependencies]
-cargo = "0.24.0"
+build-plan = "0.1.0"
 log = "0.4.1"
 env_logger = "0.4.3"
 regex = "0.2.5"
@@ -22,4 +22,4 @@ serde_derive = "1.0.27"
 termcolor = "0.3.3"
 
 [dev-dependencies]
-either = "1.4.0"
+either = "1.4.0"  # only used as a tiny crate to link against
