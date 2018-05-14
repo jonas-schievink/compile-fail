@@ -4,7 +4,7 @@ description = """
 Make safe abstractions stay safe by not letting unsafe code compile
 """
 license = "CC0-1.0"
-categories = ["development-tools"]
+categories = ["development-tools::testing"]
 keywords = ["test", "testing", "compiletest", "compile-fail", "error"]
 authors = ["Jonas Schievink <jonasschievink@gmail.com>"]
 repository = "https://github.com/jonas-schievink/compile-fail"
