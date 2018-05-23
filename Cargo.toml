@@ -3,6 +3,7 @@ name = "compile-fail"
 description = """
 Make safe abstractions stay safe by not letting unsafe code compile
 """
+readme = "README.md"
 license = "CC0-1.0"
 categories = ["development-tools::testing"]
 keywords = ["test", "compiletest", "compile-fail", "compiler", "error"]
