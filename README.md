@@ -1,5 +1,7 @@
 # Ensure that unsafe code doesn't compile
 
+(**Work in progress, don't use yet.**)
+
 The `compile-fail` crate provides a mechanism to write tests that expect
 compilation to fail with a specific error. This is useful for crates that use
 lots of `unsafe` but try to provide a safe abstraction.
