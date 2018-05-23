@@ -29,10 +29,12 @@ use std::io::Read;
 use std::path::PathBuf;
 
 /// Generates a `#[test]` function that manages all compile-fail tests.
+///
+/// This can also be called with a `Config` structure if further configuration is needed.
 #[macro_export]
-macro_rules! run_tests {
+macro_rules! run_compile_fail_tests {
     () => {
-        run_tests!($crate::Config {
+        run_compile_fail_tests!($crate::Config {
             wrapper_test: file!(),
             ..$crate::Config::default()
         });
