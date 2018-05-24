@@ -6,12 +6,6 @@ use std::ffi::OsString;
 use std::process::Command;
 use std::path::{Path, PathBuf};
 
-// Note (to self and contributors, mostly): Cargo is pretty bad with retaining error information.
-// In particular, errors returned by the `Runner` callback might Cargo to give us a different error
-// that just says "Could not compile `<crate>`". It would be nice to circumvent this, but for now,
-// just log a lot.
-// Addendum: It turns out that everything breaks anyway when this happens.
-
 /// Commandline invocation blueprint for compiling tests like Cargo would.
 ///
 /// This is obtained once at the start by hooking into Cargo.
