@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-/// Configuration for `compile-fail`.
+/// Test runner configuration.
 #[derive(Debug, Clone)]
 pub struct Config {
     /// Path to the directory containing the compile-fail tests.
@@ -25,7 +25,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             cfail_path: PathBuf::from("tests/compile-fail"),
-            // This default will be overwritten by the `run_tests!` macro, which passes `file!()`.
+            // This default will be overwritten by the `run_compile_fail_tests!` macro, which passes `file!()`.
             wrapper_test: "tests/compile-fail.rs",
             no_console_output: false,
         }

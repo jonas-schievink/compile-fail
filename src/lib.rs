@@ -1,6 +1,25 @@
-//! TODO: Write docs here :)
+//! Test runner for tests that shouldn't compile.
 //!
-//! If you can read this, I have failed my mission :(
+//! For most users, simply calling the [`run_compile_fail_tests!`] macro does everything that's
+//! needed:
+//!
+//! ```no_run
+//! #[macro_use] extern crate compile_fail;
+//!
+//! run_compile_fail_tests!();
+//! ```
+//!
+//! If additional configuration is needed, you can pass a [Config] struct to the macro:
+//!
+//! ```no_run
+//! #[macro_use] extern crate compile_fail;
+//!
+//! run_compile_fail_tests!(Config {
+//!     cfail_path: PathBuf::from("tests/custom-compile-fail"),
+//!     wrapper_test: file!(),
+//!     ..Config::default()
+//! });
+//! ```
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate serde_derive;
@@ -124,7 +143,7 @@ pub fn try_run_tests(config: Config) -> Result<(), Box<Error>> {
     parse_and_run(&config, find_tests(&config)?)
 }
 
-/// Runs all compile-fail tests.
+/// Runs all compile-fail tests. Panics when a test fails.
 ///
 /// This function **must** be called from a test function named `compile_fail` contained in an
 /// integration test. The `run_tests!` macro will autogenerate such a function.
