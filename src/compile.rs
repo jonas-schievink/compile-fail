@@ -24,13 +24,20 @@ pub struct Blueprint {
 impl Blueprint {
     /// Obtains a `Blueprint` by attempting to compile the wrapper test with Cargo.
     pub fn obtain(config: &Config) -> Result<Self, Box<Error>> {
-        let raw_plan = Command::new(env!("CARGO"))
+        // FIXME make `env!("CARGO")` configurable
+        let output = Command::new(env!("CARGO"))
             .arg("-Zunstable-options")
             .arg("build")
             .arg("--build-plan")
             .arg("--test")
             .arg(Path::new(config.wrapper_test).file_stem().ok_or(format!("invalid `wrapper_test`"))?)
-            .output()?.stdout;
+            .output()?;
+
+        if !output.status.success() {
+            return Err(format!("failed to obtain build plan from Cargo ({}): {}", output.status, String::from_utf8_lossy(&output.stderr)).into());
+        }
+
+        let raw_plan = output.stdout;
 
         let plan = BuildPlan::from_cargo_output(raw_plan)?;
         let invocations = plan.invocations.iter().filter(|inv| inv.target_kind == TargetKind::Test).collect::<Vec<_>>();
