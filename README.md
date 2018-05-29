@@ -65,7 +65,7 @@ can be a `dev-dependency`):
 compile-fail = "0.1.0"
 ```
 
-Create a test entry in `tests/compile-fail.rs`:
+Create the test entry point in `tests/compile-fail.rs`:
 
 ```rust
 #[macro_use] extern crate compile_fail;
@@ -85,11 +85,11 @@ fn main() {
 
 # Syntax
 
-In a `compile-fail` test, you need to define at least one "error pattern" that
-specifies how the error you expect to see should look. A pattern is a comment
-starting with `//~`. The pattern has to mention the error message or the error
-code emitted by rustc. The following 2 patterns should match the same errors
-since `E0308` is the error code for mismatched types:
+In a `compile-fail` test, you need to define at least one *error pattern* that
+specifies how the error you expect to see should look. An error pattern is a
+comment starting with `//~`. The pattern has to mention the error message or the
+error code emitted by rustc. The following 2 patterns should match the same
+errors since `E0308` is the error code for mismatched types:
 
 ```rust
 let () = 9;     //~ error: mismatched types
