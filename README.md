@@ -23,7 +23,7 @@ It was originally written to test rustc itself and was later extracted as a
 standalone crate. This means that it comes with a lot of baggage that isn't
 needed by most users and was written with rustc's build system in mind. It also
 tends to break when doing anything non-standard (like using dependencies in a
-weird way, resulting in non-obivous errors like "multiple matching crates
+weird way, resulting in non-obvious errors like "multiple matching crates
 found").
 
 `compile-fail` incorporates a few useful parts of `compiletest` (like the
