@@ -1,3 +1,8 @@
+# Deprecated
+
+**This crate is deprecated in favor of [compiletest-rs](https://github.com/laumann/compiletest-rs)
+(which now works on stable) and [trybuild](https://github.com/dtolnay/trybuild).**
+
 # Ensure that unsafe code doesn't compile
 
 (**Work in progress, don't use yet.**)
